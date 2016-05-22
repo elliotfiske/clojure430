@@ -7,7 +7,7 @@
 (def top-env {:+ :+Prim
               :- :-Prim
               :* :*Prim
-              :/ :/Prim
+              :div :divPrim
               :<= :<=Prim
               :eq? :eq?Prim})
 
@@ -17,6 +17,9 @@
 ; (: my+ ((list NumV NumV) -> NumV)
 (def my+ (fn [args]
            ))
+
+(def my- (fn [args]
+          ))
 
 (def primitive-fundefs
   {:+Prim my+
@@ -28,7 +31,12 @@
    (if (instance? NumC a)
       (NumV. (:n a))
       (if (instance? IdC a)
-        (if )
+
+        (if (contains? env (:x a))
+          (get env (:x a))
+          ((print "DFLY: No variable called ") (print (:x a))))
+        (print "Unimplemented :D")
    ))))
 
-(println (interp (NumC. 3))) ; (NumV 3)
+(println (interp (NumC. 3) top-env)) ; (NumV 3)
+(println (interp (IdC. :+) top-env)) ; :+Prim
