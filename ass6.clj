@@ -37,8 +37,7 @@
 (def interp (fn [a env]
    ; BoolC
    (if (instance? BoolC a)
-     ;(BoolV. (:b a))
-     (BoolV. true)
+     (BoolV. (:b a))
 
      ; NumC
      (if (instance? NumC a)
@@ -52,15 +51,14 @@
 
           ; IfC
           (if (instance? IfC a)
-            (((def condition (interp (:condition a) env)))
-             (print condition)
-            (if (instance? BoolV condition)
-              (if (:b condition)
-                   (interp (:then a) env)
-                   (interp (:else a) env))
-              ((print "DFLY: An if statement condition
-                     evaluated to something other than true or false: ")
-              (print condition))))
+            (let [condition (interp (:condition a) env)]
+              (if (instance? BoolV condition)
+                (if (:b condition)
+                     (interp (:then a) env)
+                     (interp (:else a) env))
+                ((print "DFLY: An if statement condition
+                       evaluated to something other than true or false: ")
+                (print condition ))))
 
               ; LamC and AppC
               (interp-fn a env)
@@ -71,7 +69,8 @@
 
 ; Helper function that interps LamCs and AppCs
 ; (: interp-fn (ExprC map -> Value))
-; (def interp-fn )
+(def interp-fn (fn [a env]
+   (NumV. 3)))
 
 
 (println (interp (NumC. 3) top-env)) ; (NumV 3)
