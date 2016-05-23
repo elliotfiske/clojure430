@@ -1,3 +1,6 @@
+
+(require '[clojure.core.reducers :as r])
+
 ; Declare functions to make compiler happy
 (declare parse-if)
 (declare binop?)
@@ -207,7 +210,8 @@
                      (interp (:else a) env))
                 ((print "DFLY: An if statement condition
                        evaluated to something other than true or false: ")
-                (print condition ))))
+                (print condition )
+                (throw (Exception. "how sad")))))
 
               ; LamC and AppC
               (interp-fn a env)
@@ -215,6 +219,38 @@
 
    )))))
 
+
+; Take in an outer environment and a lambda, and spit out the new environment
+;  the body of the lambda will use. It combines the outer env with the parameters
+;  from the lambda.
+; (: prepare-env (CloV (List Value) Env -> Env))
+(def prepare-env (fn [closure args outer-env]
+  (when (not (= (count (:params closure)) (count args)))
+    (throw (Exception. (format "DFLY: Function expected %s args, you gave %s args"
+                               (count (:params closure)) (count args)))))
+
+(reduce (fn [curr-hash vec-arg-param]
+            (print "Are you a vector: ")
+            (print (vector? vec-arg-param))
+            (assoc curr-hash (nth vec-arg-param 1) (nth vec-arg-param 0))
+            ) outer-env (map vector args (:params closure)))))
+
+
+(println (prepare-env
+          (CloV. '(a b)
+                 (BinopC. '+ (IdC. 'a) (IdC. 'b))
+                 top-env)
+           (list (NumV. 4) (NumV. 5))
+           {'x (NumV. -1)
+            'y (NumV. 37)}))
+
+            ; Expect the hash: {'a (NumV. 4)
+            ;                    'b (NumV. 5)
+            ;   'x (NumV. -1)
+            ;   'y (NumV. 37)}
+
+
+;(reduce (fn [a-b curr-hash] (assoc curr-hash (nth a-b 1) (nth a-b 0))) {} (map vector '(1 2 3) '(4 5 6)))
 
 ; Helper function that interps LamCs and AppCs
 ; (: interp-fn (ExprC map -> Value))
@@ -228,8 +264,13 @@
        (let [fval (interp (:f a) env)
              argvals (map
                      (fn [arg] (interp arg env)) (:a a))]
+         (when (not (instance? CloV fval))
+           (throw (Exception. (format "DFLY: There was an AppC
+that contained %s instead of a CloV" fval))))
+         (interp (:body fval) )
+
          )
-        (print (format "DFLY: Interped something that's not an ExprC: %s" a))
+        (throw (Exception. (format "DFLY: Interped something that's not an ExprC: %s" a)))
        ))))
 
 (println (interp (NumC. 3) top-env)) ; (NumV 3)
