@@ -306,3 +306,5 @@ that contained %s instead of a CloV" fval))))
 (println (interp (IfC. (BoolC. false) (NumC. 4) (NumC. 5)) top-env)) ; (NumV 5)
 
 (println (interp (parse '(lam (a) 3)) top-env) (CloV. '(a) (NumC. 3) top-env))
+
+(check-equal? (top-interp '{{if {eq? 3 3} 3 4}}) "3")
