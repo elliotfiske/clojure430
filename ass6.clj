@@ -11,7 +11,20 @@
 (declare desugar-arg)
 (declare desugar-param)
 (declare desugar-with)
+(declare interp)
 (declare interp-fn)
+(declare interp-binop)
+(declare check-equal?)
+
+; Test Function
+(def check-equal?
+    (fn [_test result]
+        (if (= _test result)
+            (println "pass")
+            (println "fail")
+        )
+    )
+)
 
 ; ExprC defs
 (defrecord NumC [n])
@@ -28,12 +41,7 @@
 (defrecord NumV [n])
 
 ; Default environment
-(def top-env {:+ :+Prim
-              :- :-Prim
-              :* :*Prim
-              :div :divPrim
-              :<= :<=Prim
-              :eq? :eq?Prim})
+(def top-env {})
 
 ; Parse IfC's
 (def parse-if
@@ -134,55 +142,33 @@
     (fn [sexp]
         (if (number? sexp)
             (NumC. sexp)
-            (if (or (= sexp 'true) (= sexp 'false))
-                (BoolC. sexp)
-                (if (symbol? sexp)
-                    (IdC. sexp)
-                    (if (= (first sexp) 'if)
-                        (parse-if sexp)
-                        (if (= (first sexp) 'with)
-                            (desugar-with sexp)
-                            (if (= (first sexp) 'lam)
-                                (parse-lam sexp)
-                                (if (binop? (first sexp))
-                                    (parse-binop sexp)
-                                    (parse-app sexp)
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
+        (if (or (= sexp 'true) (= sexp 'false))
+            (BoolC. sexp)
+        (if (symbol? sexp)
+            (IdC. sexp)
+        (if (= (first sexp) 'if)
+            (parse-if sexp)
+        (if (= (first sexp) 'with)
+            (desugar-with sexp)
+        (if (= (first sexp) 'lam)
+            (parse-lam sexp)
+        (if (binop? (first sexp))
+            (parse-binop sexp)
+            (parse-app sexp)
+        )))))))
     )
 )
 
-(println (= (parse '5) (NumC. 5)))
-(println (= (parse 'true) (BoolC. true)))
-(println (= (parse 'false) (BoolC. false)))
-(println (= (parse 'x) (IdC. 'x)))
-(println (= (parse '(if true 1 0)) (IfC. (BoolC. true) (NumC. 1) (NumC. 0))))
-(println (= (parse '(+ 1 2)) (BinopC. '+ (NumC. 1) (NumC. 2))))
-(println (= (parse '(lam (a b c) 3)) (LamC. (list 'a 'b 'c) (NumC. 3))))
-(println (= (parse '((lam (a b c) 3) 1 2 3)) (AppC. (LamC. (list 'a 'b 'c) (NumC. 3)) (list (NumC. 1) (NumC. 2) (NumC. 3)))))
-(println (= (parse '(with (z = (+ 9 14)) (y = 98) (+ z y)))
-   (AppC. (LamC. (list 'z 'y) (BinopC. '+ (IdC. 'z) (IdC. 'y))) (list (BinopC. '+ (NumC. 9) (NumC. 14)) (NumC. 98)))))
-
-
-; All the primitive functions live here!
-
-; Primitive plus
-; (: my+ ((list NumV NumV) -> NumV)
-(def my+ (fn [args]
-           ))
-
-(def my- (fn [args]
-          ))
-
-(def primitive-fundefs
-  {:+Prim my+
-   :-Prim my-})
-
+(check-equal? (parse '5) (NumC. 5))
+(check-equal? (parse 'true) (BoolC. true))
+(check-equal? (parse 'false) (BoolC. false))
+(check-equal? (parse 'x) (IdC. 'x))
+(check-equal? (parse '(if true 1 0)) (IfC. (BoolC. true) (NumC. 1) (NumC. 0)))
+(check-equal? (parse '(+ 1 2)) (BinopC. '+ (NumC. 1) (NumC. 2)))
+(check-equal? (parse '(lam (a b c) 3)) (LamC. (list 'a 'b 'c) (NumC. 3)))
+(check-equal? (parse '((lam (a b c) 3) 1 2 3)) (AppC. (LamC. (list 'a 'b 'c) (NumC. 3)) (list (NumC. 1) (NumC. 2) (NumC. 3))))
+(check-equal? (parse '(with (z = (+ 9 14)) (y = 98) (+ z y)))
+   (AppC. (LamC. (list 'z 'y) (BinopC. '+ (IdC. 'z) (IdC. 'y))) (list (BinopC. '+ (NumC. 9) (NumC. 14)) (NumC. 98))))
 
 ; Interp takes in an ExprC and evaluates it.
 ; (: interp (ExprC map -> Value))
@@ -210,15 +196,57 @@
                      (interp (:else a) env))
                 ((print "DFLY: An if statement condition
                        evaluated to something other than true or false: ")
-                (print condition )
-                (throw (Exception. "how sad")))))
 
-              ; LamC and AppC
-              (interp-fn a env)
+                (print condition ))))
+              (if (instance? BinopC a)
+                  (interp-binop a env)
+                  ; LamC and AppC
+                  (interp-fn a env)
+              )
             )
 
    )))))
 
+; Interpt the binops
+(def interp-binop
+    (fn [b env]
+        (let [
+            o (:o b)
+            l (interp (:l b) env)
+            r (interp (:r b) env)
+        ]
+            (if (and (= o '+) (instance? NumV l) (instance? NumV r))
+                (NumV. (+ (:n l) (:n r)))
+            (if (and (= o '-) (instance? NumV l) (instance? NumV r))
+                (NumV. (- (:n l) (:n r)))
+            (if (and (= o '*) (instance? NumV l) (instance? NumV r))
+                (NumV. (* (:n l) (:n r)))
+            (if (and (= o '/) (instance? NumV l) (instance? NumV r) (not (= (:n r) 0)))
+                (NumV. (/ (:n l) (:n r)))
+            (if (and (= o '<=))
+                (if (and (instance? NumV l) (instance? NumV r))
+                    (BoolV. (<= (:n l) (:n r)))
+                    (BoolV. false)
+                )
+            (if (and (= o 'eq?))
+                (if (and (instance? NumV l) (instance? NumV r))
+                     (BoolV. (= (:n l) (:n r)))
+                     (BoolV. false)
+                )
+                (throw (Exception. "binop error"))
+            ))))))
+        )
+    )
+)
+
+(check-equal? (interp (BinopC. '+ (NumC. 5) (NumC. 3)) top-env) (NumV. 8))
+(check-equal? (interp (BinopC. '- (NumC. 5) (NumC. 3)) top-env) (NumV. 2))
+(check-equal? (interp (BinopC. '* (NumC. 5) (NumC. 3)) top-env) (NumV. 15))
+(check-equal? (interp (BinopC. '/ (NumC. 9) (NumC. 3)) top-env) (NumV. 3))
+(check-equal? (interp (BinopC. '<= (NumC. 9) (NumC. 3)) top-env) (BoolV. false))
+(check-equal? (interp (BinopC. '<= (NumC. 3) (NumC. 9)) top-env) (BoolV. true))
+(check-equal? (interp (BinopC. 'eq? (NumC. 9) (NumC. 3)) top-env) (BoolV. false))
+(check-equal? (interp (BinopC. 'eq? (NumC. 9) (NumC. 9)) top-env) (BoolV. true))
 
 ; Take in an outer environment and a lambda, and spit out the new environment
 ;  the body of the lambda will use. It combines the outer env with the parameters
@@ -274,7 +302,6 @@ that contained %s instead of a CloV" fval))))
        ))))
 
 (println (interp (NumC. 3) top-env)) ; (NumV 3)
-(println (interp (IdC. :+) top-env)) ; :+Prim
 (println (interp (BoolC. true) top-env)) ; (BoolV true)
 (println (interp (IfC. (BoolC. false) (NumC. 4) (NumC. 5)) top-env)) ; (NumV 5)
 
