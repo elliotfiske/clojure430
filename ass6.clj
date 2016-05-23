@@ -258,8 +258,6 @@
                                (count (:params closure)) (count args)))))
 
 (reduce (fn [curr-hash vec-arg-param]
-            (print "Are you a vector: ")
-            (print (vector? vec-arg-param))
             (assoc curr-hash (nth vec-arg-param 1) (nth vec-arg-param 0))
             ) outer-env (map vector args (:params closure)))))
 
@@ -295,16 +293,33 @@
          (when (not (instance? CloV fval))
            (throw (Exception. (format "DFLY: There was an AppC
 that contained %s instead of a CloV" fval))))
-         (interp (:body fval) )
+         (interp (:body fval) (prepare-env fval argvals (:clo-env a)))
 
          )
         (throw (Exception. (format "DFLY: Interped something that's not an ExprC: %s" a)))
        ))))
 
-(println (interp (NumC. 3) top-env)) ; (NumV 3)
-(println (interp (BoolC. true) top-env)) ; (BoolV true)
-(println (interp (IfC. (BoolC. false) (NumC. 4) (NumC. 5)) top-env)) ; (NumV 5)
+;(println (interp (NumC. 3) top-env)) ; (NumV 3)
+;(println (interp (BoolC. true) top-env)) ; (BoolV true)
+;(println (interp (IfC. (BoolC. false) (NumC. 4) (NumC. 5)) top-env)) ; (NumV 5)
 
-(println (interp (parse '(lam (a) 3)) top-env) (CloV. '(a) (NumC. 3) top-env))
+;(println (interp (parse '(lam (a) 3)) top-env) (CloV. '(a) (NumC. 3) top-env))
 
-(check-equal? (top-interp '{{if {eq? 3 3} 3 4}}) "3")
+(def serialize (fn [v]
+    (if (instance? NumV v)
+       (str (:n v))
+       (if (instance? BoolV v)
+           (if (:b v)
+               "true"
+               "false")
+           (if (instance? CloV v)
+               "#<procedure>")))))
+
+(def top-eval (fn [sexp]
+    (serialize (interp (parse sexp) clojure.lang.PersistentHashMap/EMPTY))))
+
+
+(check-equal? (top-eval '(if (eq? 3 3) 3 4)) "3")
+(check-equal? (top-eval '((lam (minus) (minus (+ 3 10) (* 2 3)))
+                             (lam (x y) (+ x (* -1 y)))))
+                         "7")
