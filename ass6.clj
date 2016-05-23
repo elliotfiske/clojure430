@@ -21,7 +21,7 @@
 
 ; Value defs
 (defrecord BoolV [b])
-;(defrecord CloV [])
+(defrecord CloV [params body clo-env])
 (defrecord NumV [n])
 
 ; Default environment
@@ -219,7 +219,15 @@
 ; Helper function that interps LamCs and AppCs
 ; (: interp-fn (ExprC map -> Value))
 (def interp-fn (fn [a env]
-   (NumV. 3)))
+   ; LamC
+   (if (instance? LamC a)
+     (CloV. (:p a) (:b a) env)
+
+     ; AppC
+     (if (instance? AppC a)
+       (let [fval (interp (:f a) (:a a) env)
+             argvals (map )]))
+     )))
 
 (println (interp (NumC. 3) top-env)) ; (NumV 3)
 (println (interp (IdC. :+) top-env)) ; :+Prim
