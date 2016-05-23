@@ -306,3 +306,18 @@ that contained %s instead of a CloV" fval))))
 (println (interp (IfC. (BoolC. false) (NumC. 4) (NumC. 5)) top-env)) ; (NumV 5)
 
 (println (interp (parse '(lam (a) 3)) top-env) (CloV. '(a) (NumC. 3) top-env))
+
+(def serialize (fn [v]
+    (if (instance? NumV v)
+       (:n v)
+       (if (instance? BoolV v)
+           (if (:b v)
+               "true"
+               "false")
+           (if (instance? CloV v)
+               "#<procedure>")))))
+
+
+(def top-eval (fn [sexp]
+    (serialize (interp (parse sexp) clojure.lang.PersistentHashMap/EMPTY))))
+
