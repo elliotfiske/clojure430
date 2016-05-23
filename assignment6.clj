@@ -8,6 +8,17 @@
 (declare desugar-arg)
 (declare desugar-param)
 (declare desugar-with)
+(declare check-equal?)
+
+; Test Function
+(def check-equal? 
+    (fn [_test result]
+        (if (= _test result)
+            (println "pass")
+            (println "fail")
+        )   
+    )
+)
 
 ; ExprC defs
 (defrecord NumC [n])
@@ -140,13 +151,15 @@
     )
 )
 
-(println (= (parse '5) (NumC. 5)))
-(println (= (parse 'true) (BoolC. true)))
-(println (= (parse 'false) (BoolC. false)))
-(println (= (parse 'x) (IdC. 'x)))
-(println (= (parse '(if true 1 0)) (IfC. (BoolC. true) (NumC. 1) (NumC. 0))))
-(println (= (parse '(+ 1 2)) (BinopC. '+ (NumC. 1) (NumC. 2))))
-(println (= (parse '(lam (a b c) 3)) (LamC. (list 'a 'b 'c) (NumC. 3))))
-(println (= (parse '((lam (a b c) 3) 1 2 3)) (AppC. (LamC. (list 'a 'b 'c) (NumC. 3)) (list (NumC. 1) (NumC. 2) (NumC. 3)))))
-(println (= (parse '(with (z = (+ 9 14)) (y = 98) (+ z y))) 
-   (AppC. (LamC. (list 'z 'y) (BinopC. '+ (IdC. 'z) (IdC. 'y))) (list (BinopC. '+ (NumC. 9) (NumC. 14)) (NumC. 98)))))
+(check-equal? (parse '5) (NumC. 5))
+(check-equal? (parse 'true) (BoolC. true))
+(check-equal? (parse 'false) (BoolC. false))
+(check-equal? (parse 'x) (IdC. 'x))
+(check-equal? (parse '(if true 1 0)) (IfC. (BoolC. true) (NumC. 1) (NumC. 0)))
+(check-equal? (parse '(+ 1 2)) (BinopC. '+ (NumC. 1) (NumC. 2)))
+(check-equal? (parse '(lam (a b c) 3)) (LamC. (list 'a 'b 'c) (NumC. 3)))
+(check-equal? (parse '((lam (a b c) 3) 1 2 3)) (AppC. (LamC. (list 'a 'b 'c) (NumC. 3)) (list (NumC. 1) (NumC. 2) (NumC. 3))))
+(check-equal? (parse '(with (z = (+ 9 14)) (y = 98) (+ z y))) 
+   (AppC. (LamC. (list 'z 'y) (BinopC. '+ (IdC. 'z) (IdC. 'y))) (list (BinopC. '+ (NumC. 9) (NumC. 14)) (NumC. 98))))
+
+
