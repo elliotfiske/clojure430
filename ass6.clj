@@ -218,18 +218,23 @@
 
 ; Helper function that interps LamCs and AppCs
 ; (: interp-fn (ExprC map -> Value))
-;(def interp-fn (fn [a env]
-;   ; LamC
- ;  (if (instance? LamC a)
-;     (CloV. (:p a) (:b a) env)
+(def interp-fn (fn [a env]
+   ; LamC
+   (if (instance? LamC a)
+     (CloV. (:p a) (:b a) env)
 
      ; AppC
-;     (if (instance? AppC a)
-;       (let [fval (interp (:f a) (:a a) env)
-;             argvals (map )]))
-;     )))
+     (if (instance? AppC a)
+       (let [fval (interp (:f a) env)
+             argvals (map
+                     (fn [arg] (interp arg env)) (:a a))]
+         )
+        (print (format "DFLY: Interped something that's not an ExprC: %s" a))
+       ))))
 
 (println (interp (NumC. 3) top-env)) ; (NumV 3)
 (println (interp (IdC. :+) top-env)) ; :+Prim
 (println (interp (BoolC. true) top-env)) ; (BoolV true)
 (println (interp (IfC. (BoolC. false) (NumC. 4) (NumC. 5)) top-env)) ; (NumV 5)
+
+(println (interp (parse '(lam (a) 3)) top-env) (CloV. '(a) (NumC. 3) top-env))
